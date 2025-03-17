@@ -1,9 +1,8 @@
 import 'dart:io';
 import 'dart:math';
 
-// calculate 함수를 정의합니다.
-int calculate(int a, int b) {
-  return a + b;
+Future<int> calculate(int a, int b) async {
+  return a + b; 
 }
 
 class Character {
@@ -22,7 +21,8 @@ class Character {
 
   void defend(int damageTaken) {
     health += damageTaken;
-    print('$name이(가) 방어 태세를 취하여 $damageTaken만큼 체력을 회복했습니다.');
+    // ignore: unnecessary_brace_in_string_interps
+    print('$name이(가) 방어 태세를 취하여 ${damageTaken}만큼 체력을 회복했습니다.');
   }
 
   void takeDamage(int damage) {
@@ -43,18 +43,17 @@ class Monster {
   String name;
   int health;
   int attack;
-  final int attackRangeMax; // 몬스터 공격력 범위 최대값
+  final int attackRangeMax;
 
   Monster(this.name, this.health, this.attackRangeMax, int characterDefense)
     : attack = 0 {
-    // 몬스터 공격력 설정: 캐릭터 방어력과 랜덤 값 중 최대값으로 설정
     Random random = Random();
     int randomAttack = random.nextInt(attackRangeMax + 1);
     attack = max(characterDefense, randomAttack);
   }
 
   void attackCharacter(Character character) {
-    int damage = max(0, attack - character.defense); // 최소 데미지는 0
+    int damage = max(0, attack - character.defense);
     character.takeDamage(damage);
     print('$name이(가) ${character.name}에게 $damage의 데미지를 입혔습니다.');
   }
@@ -101,10 +100,18 @@ class Game {
       }
     }
 
-    if (character.isAlive() && defeatedMonsterCount == monsterList.length) {
-      print('모든 몬스터를 물리치고 승리했습니다!');
-    } else {
-      print('패배했습니다!');
+    String gameResult =
+        character.isAlive() && defeatedMonsterCount == monsterList.length
+            ? '승리'
+            : '패배';
+
+    print(gameResult == '승리' ? '모든 몬스터를 물리치고 승리했습니다!' : '패배했습니다!');
+
+    // 게임 결과 저장 여부 확인
+    stdout.write('결과를 저장하시겠습니까? (y/n): ');
+    String? saveResult = stdin.readLineSync();
+    if (saveResult?.toLowerCase() == 'y') {
+      saveGameResult(character, gameResult);
     }
   }
 
@@ -121,7 +128,7 @@ class Game {
       if (action == '1') {
         character.attackMonster(monster);
       } else if (action == '2') {
-        character.defend(monster.attack); // 몬스터 공격력만큼 체력 회복
+        character.defend(monster.attack);
       } else {
         print('잘못된 입력입니다.');
         continue;
@@ -142,10 +149,9 @@ class Game {
 
     if (character.isAlive()) {
       print('${monster.name}을(를) 물리쳤습니다!\n');
-      monsterList.remove(monster); // 처치한 몬스터 제거
+      monsterList.remove(monster);
       return true;
     } else {
-      print('패배했습니다!\n');
       return false;
     }
   }
@@ -155,20 +161,67 @@ class Game {
     int randomIndex = random.nextInt(monsterList.length);
     return monsterList[randomIndex];
   }
+
+  void saveGameResult(Character character, String gameResult) {
+    File resultFile = File('result.txt');
+    String resultData =
+        '캐릭터 이름: ${character.name}\n남은 체력: ${character.health}\n게임 결과: $gameResult';
+    resultFile.writeAsStringSync(resultData);
+    print('결과가 result.txt 파일에 저장되었습니다.');
+  }
 }
 
 void main() {
-  stdout.write('캐릭터의 이름을 입력하세요: ');
-  String? playerName = stdin.readLineSync();
-  Character player = Character(playerName ?? 'player', 50, 10, 5);
+  // 캐릭터 이름 입력 및 유효성 검증
+  String playerName;
+  while (true) {
+    stdout.write('캐릭터 이름을 입력하세요 (한글, 영문 대소문자만 허용): ');
+    playerName = stdin.readLineSync() ?? '';
+    if (playerName.isNotEmpty &&
+        RegExp(r'^[a-zA-Z가-힣]+$').hasMatch(playerName)) {
+      break;
+    }
+    print('유효하지 않은 이름입니다. 다시 입력해주세요.');
+  }
 
-  List<Monster> monsters = [
-    Monster('Spiderman', 20, 5, player.defense), // 몬스터 공격력 범위 최대값과 캐릭터 방어력 전달
-    Monster('Goblin', 30, 7, player.defense),
-    Monster('Dragon', 40, 9, player.defense),
-    // 원하는 만큼 몬스터 추가
-  ];
+  // 캐릭터 스탯 파일에서 읽어오기
+  Character player;
+  try {
+    File characterFile = File('characters.txt');
+    String characterData = characterFile.readAsStringSync();
+    List<String> characterStats = characterData.split(',');
+    player = Character(
+      playerName,
+      int.parse(characterStats[0]),
+      int.parse(characterStats[1]),
+      int.parse(characterStats[2]),
+    );
+  } catch (e) {
+    print('characters.txt 파일을 읽는 중 오류가 발생했습니다: $e');
+    return; // 프로그램 종료
+  }
+
+  // 몬스터 스탯 파일에서 읽어오기
+  List<Monster> monsters = [];
+  try {
+    File monsterFile = File('monsters.txt');
+    List<String> monsterLines = monsterFile.readAsLinesSync();
+    for (String line in monsterLines) {
+      List<String> monsterStats = line.split(',');
+      monsters.add(
+        Monster(
+          monsterStats[0],
+          int.parse(monsterStats[1]),
+          int.parse(monsterStats[2]),
+          player.defense,
+        ),
+      );
+    }
+  } catch (e) {
+    print('monsters.txt 파일을 읽는 중 오류가 발생했습니다: $e');
+    return; // 프로그램 종료
+  }
 
   Game game = Game(player, monsters);
   game.startGame();
-} // TODO Implement this library.
+}
