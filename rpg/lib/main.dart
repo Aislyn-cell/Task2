@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
-// calculate 함수를 정의합니다. (예시)
+// calculate 함수를 정의합니다.
 int calculate(int a, int b) {
   return a + b;
 }
@@ -45,7 +45,8 @@ class Monster {
   int attack;
   final int attackRangeMax; // 몬스터 공격력 범위 최대값
 
-  Monster(this.name, this.health, this.attackRangeMax, int characterDefense) {
+  Monster(this.name, this.health, this.attackRangeMax, int characterDefense)
+    : attack = 0 {
     // 몬스터 공격력 설정: 캐릭터 방어력과 랜덤 값 중 최대값으로 설정
     Random random = Random();
     int randomAttack = random.nextInt(attackRangeMax + 1);
