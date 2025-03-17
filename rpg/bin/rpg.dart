@@ -1,3 +1,4 @@
+// ignore: unused_import
 import 'package:rpg/main.dart' as rpg;
 
 int calculate(int a, int b) {
@@ -7,5 +8,5 @@ int calculate(int a, int b) {
 void main(List<String> arguments) {
   int arg1 = 0; // or any default value
   int arg2 = 0; // or any default value
-  print('Hello world: ${rpg.calculate(arg1, arg2)}!');
+  print('Hello world: ${calculate(arg1, arg2)}!');
 }
